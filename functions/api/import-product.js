@@ -1,7 +1,7 @@
 const ALLOWED_HOSTS=["mercadolivre.com.br","www.mercadolivre.com.br","meli.la","shopee.com.br","www.shopee.com.br","shope.ee"];
 function allowed(host){return ALLOWED_HOSTS.some(x=>host===x||host.endsWith("."+x))}
 function decode(s=""){return String(s).replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/&#x([\da-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16)))}
-function attr(tag,name){const m=tag.match(new RegExp("\\\\b"+name+"\\\\s*=\\\\s*([\\"'])(.*?)\\\\1","i"));return m?decode(m[2]):""}
+function attr(tag,name){const m=tag.match(new RegExp("\\b"+name+"\\s*=\\s*(['\"])(.*?)\\1","i"));return m?decode(m[2]):""}
 function meta(html,key,attribute="property"){for(const tag of html.matchAll(/<meta\b[^>]*>/gi)){if(attr(tag[0],attribute).toLowerCase()===key.toLowerCase())return attr(tag[0],"content")}return ""}
 function clean(s=""){return decode(String(s).replace(/<[^>]*>/g," ")).replace(/\s+/g," ").trim()}
 function jsonLd(html){const out=[];for(const m of html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)){try{const v=JSON.parse(m[1]);const walk=x=>{if(!x||typeof x!=="object")return;if(Array.isArray(x)){x.forEach(walk);return}out.push(x);Object.values(x).forEach(walk)};walk(v)}catch{}}return out}
