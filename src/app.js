@@ -1,6 +1,6 @@
 const KEY="multiAfiliados.products.v1",CLICKS="multiAfiliados.clicks.v1";
 const $=s=>document.querySelector(s),money=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-let products=readProducts(),clicks=Number(localStorage.getItem(CLICKS)||0),toastTimer,user=null,supabase=null,syncing=false;
+let products=readProducts(),clicks=Number(localStorage.getItem(CLICKS)||0),toastTimer,user=null,supabaseClient=null,syncing=false;
 function readProducts(){try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch{return []}}
 function saveLocal(){localStorage.setItem(KEY,JSON.stringify(products));localStorage.setItem(CLICKS,String(clicks))}
 function esc(v=""){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -23,25 +23,25 @@ function openDialog(){$("#productDialog").showModal()}
 function toRow(p){return {id:p.id,user_id:user.id,code:p.code,name:p.name,platform:p.platform,price:p.price||0,description:p.description||"",affiliate_url:p.url,image_url:p.image||"",created_at:p.createdAt||new Date().toISOString()}}
 function fromRow(r){return {id:r.id,code:r.code,name:r.name,platform:r.platform,price:Number(r.price)||0,description:r.description||"",url:r.affiliate_url,image:r.image_url||"",createdAt:r.created_at}}
 async function syncProducts(){
- if(!supabase||!user||syncing)return;syncing=true;
+ if(!supabaseClient||!user||syncing)return;syncing=true;
  try{
-  const {data:rows,error}=await supabase.from("products").select("*").order("created_at",{ascending:true});
+  const {data:rows,error}=await supabaseClient.from("products").select("*").order("created_at",{ascending:true});
   if(error)throw error;
   if(rows.length){products=rows.map(fromRow);saveLocal()}
-  else if(products.length){const payload=products.map(toRow);const {error:upErr}=await supabase.from("products").upsert(payload,{onConflict:"id"});if(upErr)throw upErr}
-  const {count,error:countErr}=await supabase.from("product_clicks").select("*",{count:"exact",head:true});if(!countErr&&count!==null)clicks=count;
+  else if(products.length){const payload=products.map(toRow);const {error:upErr}=await supabaseClient.from("products").upsert(payload,{onConflict:"id"});if(upErr)throw upErr}
+  const {count,error:countErr}=await supabaseClient.from("product_clicks").select("*",{count:"exact",head:true});if(!countErr&&count!==null)clicks=count;
   saveLocal();render();notify("Catálogo sincronizado com a nuvem.");
  }catch(e){console.error(e);notify("Não foi possível sincronizar: "+(e.message||"verifique a configuração do Supabase."))}
  finally{syncing=false}
 }
 async function saveProductCloud(p){
- if(!supabase||!user)return;const {error}=await supabase.from("products").upsert(toRow(p),{onConflict:"id"});if(error)throw error
+ if(!supabaseClient||!user)return;const {error}=await supabaseClient.from("products").upsert(toRow(p),{onConflict:"id"});if(error)throw error
 }
-async function deleteProductCloud(id){if(!supabase||!user)return;const {error}=await supabase.from("products").delete().eq("id",id);if(error)throw error}
-async function signIn(email,password){const {error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error}
+async function deleteProductCloud(id){if(!supabaseClient||!user)return;const {error}=await supabaseClient.from("products").delete().eq("id",id);if(error)throw error}
+async function signIn(email,password){const {error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw error}
 async function signUp(email,password){
- if(!supabase)throw new Error("A conexão com o Supabase não foi iniciada. Atualize a página.");
- const {data,error}=await supabase.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}});
+ if(!supabaseClient)throw new Error("A conexão com o Supabase não foi iniciada. Atualize a página.");
+ const {data,error}=await supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}});
  if(error)throw error;
  return data;
 }
@@ -53,16 +53,16 @@ function setUser(next){
 async function init(){
  const cfg=window.MULTIAFILIADOS_SUPABASE;
  if(!window.supabase||!cfg?.url||!cfg?.publishableKey){showAuth(true);authMessage("Configuração do Supabase não carregou. Atualize a página.");return}
- supabase=window.supabase.createClient(cfg.url,cfg.publishableKey);
- const {data:{session}}=await supabase.auth.getSession();setUser(session?.user||null);
- supabase.auth.onAuthStateChange((_event,session)=>setUser(session?.user||null));
+ supabaseClient=window.supabase.createClient(cfg.url,cfg.publishableKey);
+ const {data:{session}}=await supabaseClient.auth.getSession();setUser(session?.user||null);
+ supabaseClient.auth.onAuthStateChange((_event,session)=>setUser(session?.user||null));
 }
 $("#authForm").addEventListener("submit",async e=>{e.preventDefault();const email=$("#authEmail").value.trim(),password=$("#authPassword").value;$("#loginBtn").disabled=true;try{await signIn(email,password);authMessage("Login realizado.")}catch(err){authMessage(err.message||"Não foi possível entrar.")}finally{$("#loginBtn").disabled=false}});
 $("#signupBtn").addEventListener("click",async()=>{
  const email=$("#authEmail").value.trim().toLowerCase(),password=$("#authPassword").value;
  if(!email||!$("#authEmail").checkValidity()){authMessage("Digite um endereço de e-mail válido.");$("#authEmail").focus();return}
  if(password.length<6){authMessage("A senha precisa ter pelo menos 6 caracteres.");$("#authPassword").focus();return}
- if(!supabase){authMessage("O sistema ainda está conectando ao banco. Atualize a página e tente novamente.");return}
+ if(!supabaseClient){authMessage("O sistema ainda está conectando ao banco. Atualize a página e tente novamente.");return}
  $("#signupBtn").disabled=true;$("#loginBtn").disabled=true;
  authMessage("Enviando solicitação de cadastro...");
  try{
@@ -75,12 +75,12 @@ $("#signupBtn").addEventListener("click",async()=>{
   authMessage("Não foi possível criar a conta: "+msg);
  }finally{$("#signupBtn").disabled=false;$("#loginBtn").disabled=false}
 });
-$("#logoutBtn").addEventListener("click",async()=>{const {error}=await supabase.auth.signOut();if(error)notify(error.message);else notify("Você saiu da conta.")});
+$("#logoutBtn").addEventListener("click",async()=>{const {error}=await supabaseClient.auth.signOut();if(error)notify(error.message);else notify("Você saiu da conta.")});
 $("#newProductBtn").addEventListener("click",openDialog);$("#closeDialog").addEventListener("click",()=>$("#productDialog").close());$("#cancelDialog").addEventListener("click",()=>$("#productDialog").close());
 $("#productForm").addEventListener("submit",async e=>{e.preventDefault();const f=new FormData(e.currentTarget),p={id:crypto.randomUUID(),code:nextCode(),name:f.get("name").trim(),platform:f.get("platform"),price:Number(f.get("price"))||0,description:f.get("description").trim(),url:f.get("url").trim(),image:f.get("image").trim(),createdAt:new Date().toISOString()};if(!/^https?:\/\//i.test(p.url)){notify("Informe um link válido.");return}try{await saveProductCloud(p);products.push(p);saveLocal();render();e.currentTarget.reset();$("#productDialog").close();notify("Produto salvo na nuvem.");navigate("products")}catch(err){notify("Falha ao salvar no banco: "+err.message)}});
 $("#productGrid").addEventListener("click",async e=>{const b=e.target.closest("[data-publish]");if(b){navigate("publish");$("#publishProduct").value=b.dataset.publish;preview();return}const d=e.target.closest("[data-delete]");if(d&&confirm("Excluir este produto?")){try{await deleteProductCloud(d.dataset.delete);products=products.filter(p=>p.id!==d.dataset.delete);saveLocal();render();notify("Produto excluído.")}catch(err){notify("Falha ao excluir: "+err.message)}}});
 $("#searchInput").addEventListener("input",render);$("#platformFilter").addEventListener("change",render);$("#publishProduct").addEventListener("change",preview);
-$("#shareWhatsApp").addEventListener("click",async()=>{const p=products.find(x=>x.id===$("#publishProduct").value);if(!p)return;try{const {error}=await supabase.from("product_clicks").insert({user_id:user.id,product_id:p.id,source:"whatsapp_share"});if(error)throw error;clicks++;saveLocal();render()}catch(err){console.warn("Click tracking:",err.message)}window.open("https://wa.me/?text="+encodeURIComponent(message(p)),"_blank","noopener");notify("Mensagem preparada no WhatsApp.")});
+$("#shareWhatsApp").addEventListener("click",async()=>{const p=products.find(x=>x.id===$("#publishProduct").value);if(!p)return;try{const {error}=await supabaseClient.from("product_clicks").insert({user_id:user.id,product_id:p.id,source:"whatsapp_share"});if(error)throw error;clicks++;saveLocal();render()}catch(err){console.warn("Click tracking:",err.message)}window.open("https://wa.me/?text="+encodeURIComponent(message(p)),"_blank","noopener");notify("Mensagem preparada no WhatsApp.")});
 $("#exportBtn").addEventListener("click",()=>{const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),products,clicks},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="multi-afiliados-backup.json";a.click();URL.revokeObjectURL(a.href)});
 $("#importInput").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!Array.isArray(data.products)||!data.products.every(p=>p.name&&p.url))throw Error("Arquivo inválido");if(!confirm("Mesclar os produtos do backup com o catálogo da nuvem?"))return;for(const p of data.products){if(!p.id||! /^[0-9a-f-]{36}$/i.test(p.id))p.id=crypto.randomUUID();const existing=products.find(x=>x.id===p.id);if(existing)Object.assign(existing,p);else products.push(p);await saveProductCloud(p)}saveLocal();render();notify("Backup importado e sincronizado.")}catch(err){notify("Falha na importação: "+err.message)}finally{e.target.value=""}});
 document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.go)));document.querySelectorAll(".nav-item").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();navigate(a.hash.slice(1))}));
