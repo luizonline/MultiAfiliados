@@ -109,6 +109,7 @@ $("#importProductBtn").addEventListener("click",async()=>{
   }
   form.elements.url.value=affiliateUrl;
   const fields=[result.name,result.price!==null&&result.price!==undefined,result.image].filter(Boolean).length;
+  if(result.diagnostics){const d=result.diagnostics;console.info("Diagnóstico de preços Shopee:",d);status.textContent+=" [Diagnóstico: original HTML="+(d.htmlOriginalPrice??"não encontrado")+", original API="+(d.apiOriginalPrice??"não encontrado")+", preço página="+(d.pageRegularPrice??"não encontrado")+", HTML="+d.htmlLength+" bytes]"}
   status.textContent=result.platform==="Shopee"?(result.price===null||result.price===undefined?"Produto identificado, mas não foi possível confirmar o preço da variação selecionada. Confira a opção no anúncio antes de salvar.":"Informações encontradas e link de afiliado Shopee gerado. Confira os campos antes de salvar."):fields?"Informações encontradas. Confira os campos e complete o que estiver faltando antes de salvar.":"O link foi reconhecido, mas a loja não disponibilizou os dados automaticamente. Você pode preencher os campos manualmente.";
  }catch(error){console.error("Importação do produto:",error);status.textContent=error.message+" Você ainda pode preencher os dados manualmente."}
  finally{button.disabled=false}
