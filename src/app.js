@@ -97,9 +97,19 @@ $("#importProductBtn").addEventListener("click",async()=>{
   if(result.price!==null&&result.price!==undefined)form.elements.price.value=formatPriceInput(result.price);if(result.originalPrice!==null&&result.originalPrice!==undefined)form.elements.originalPrice.value=formatPriceInput(result.originalPrice);
   if(result.description)form.elements.description.value=result.description;
   if(result.image)form.elements.image.value=result.image;
-  form.elements.url.value=url;
+  let affiliateUrl=url;
+  if(result.platform==="Shopee"){
+   status.textContent="Produto localizado. Gerando seu link de afiliado Shopee...";
+   try{
+    const linkResponse=await fetch("/api/shopee-link",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({url:result.canonicalUrl||url})});
+    const linkData=await linkResponse.json().catch(()=>({}));
+    if(!linkResponse.ok)throw new Error(linkData.error||"Falha ao gerar link de afiliado.");
+    affiliateUrl=linkData.affiliateUrl;
+   }catch(linkError){form.elements.url.value=url;status.textContent="Dados do produto encontrados, mas não foi possível gerar o link de afiliado: "+linkError.message+" O link original foi mantido.";return}
+  }
+  form.elements.url.value=affiliateUrl;
   const fields=[result.name,result.price!==null&&result.price!==undefined,result.image].filter(Boolean).length;
-  status.textContent=fields?"Informações encontradas. Confira os campos e complete o que estiver faltando antes de salvar.":"O link foi reconhecido, mas a loja não disponibilizou os dados automaticamente. Você pode preencher os campos manualmente.";
+  status.textContent=result.platform==="Shopee"?"Informações encontradas e link de afiliado Shopee gerado. Confira os campos antes de salvar.":fields?"Informações encontradas. Confira os campos e complete o que estiver faltando antes de salvar.":"O link foi reconhecido, mas a loja não disponibilizou os dados automaticamente. Você pode preencher os campos manualmente.";
  }catch(error){console.error("Importação do produto:",error);status.textContent=error.message+" Você ainda pode preencher os dados manualmente."}
  finally{button.disabled=false}
 });
