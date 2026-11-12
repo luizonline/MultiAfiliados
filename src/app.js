@@ -1,5 +1,5 @@
 const KEY="multiAfiliados.products.v1",CLICKS="multiAfiliados.clicks.v1";
-const $=s=>document.querySelector(s),money=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const $=s=>document.querySelector(s),money=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),parsePrice=v=>{const s=String(v??"").trim().replace(/R\$\s*/i,"").replace(/\s/g,"");if(!s)return 0;const normalized=s.includes(",")?s.replace(/\./g,"").replace(",","."):s;const n=Number(normalized);return Number.isFinite(n)?n:0},formatPriceInput=v=>v===null||v===undefined||v===""?"":Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
 let products=readProducts(),clicks=Number(localStorage.getItem(CLICKS)||0),toastTimer,user=null,supabaseClient=null,syncing=false;
 function readProducts(){try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch{return []}}
 function saveLocal(){localStorage.setItem(KEY,JSON.stringify(products));localStorage.setItem(CLICKS,String(clicks))}
@@ -94,7 +94,7 @@ $("#importProductBtn").addEventListener("click",async()=>{
   const form=$("#productForm");
   if(result.name)form.elements.name.value=result.name;
   if(result.platform)form.elements.platform.value=result.platform;
-  if(result.price!==null&&result.price!==undefined)form.elements.price.value=result.price;if(result.originalPrice!==null&&result.originalPrice!==undefined)form.elements.originalPrice.value=result.originalPrice;
+  if(result.price!==null&&result.price!==undefined)form.elements.price.value=formatPriceInput(result.price);if(result.originalPrice!==null&&result.originalPrice!==undefined)form.elements.originalPrice.value=formatPriceInput(result.originalPrice);
   if(result.description)form.elements.description.value=result.description;
   if(result.image)form.elements.image.value=result.image;
   form.elements.url.value=url;
@@ -103,7 +103,7 @@ $("#importProductBtn").addEventListener("click",async()=>{
  }catch(error){console.error("Importação do produto:",error);status.textContent=error.message+" Você ainda pode preencher os dados manualmente."}
  finally{button.disabled=false}
 });
-$("#productForm").addEventListener("submit",async e=>{e.preventDefault();const f=new FormData(e.currentTarget),p={id:crypto.randomUUID(),code:nextCode(),name:f.get("name").trim(),platform:f.get("platform"),price:Number(f.get("price"))||0,originalPrice:Number(f.get("originalPrice"))||0,description:f.get("description").trim(),url:f.get("url").trim(),image:f.get("image").trim(),createdAt:new Date().toISOString()};if(!/^https?:\/\//i.test(p.url)){notify("Informe um link válido.");return}try{await saveProductCloud(p);products.push(p);saveLocal();render();e.currentTarget.reset();$("#productDialog").close();notify("Produto salvo na nuvem.");navigate("products")}catch(err){notify("Falha ao salvar no banco: "+err.message)}});
+$("#productForm").addEventListener("submit",async e=>{e.preventDefault();const f=new FormData(e.currentTarget),p={id:crypto.randomUUID(),code:nextCode(),name:f.get("name").trim(),platform:f.get("platform"),price:parsePrice(f.get("price")),originalPrice:parsePrice(f.get("originalPrice")),description:f.get("description").trim(),url:f.get("url").trim(),image:f.get("image").trim(),createdAt:new Date().toISOString()};if(!/^https?:\/\//i.test(p.url)){notify("Informe um link válido.");return}try{await saveProductCloud(p);products.push(p);saveLocal();render();e.currentTarget.reset();$("#productDialog").close();notify("Produto salvo na nuvem.");navigate("products")}catch(err){notify("Falha ao salvar no banco: "+err.message)}});
 $("#productGrid").addEventListener("click",async e=>{const b=e.target.closest("[data-publish]");if(b){navigate("publish");$("#publishProduct").value=b.dataset.publish;preview();return}const d=e.target.closest("[data-delete]");if(d&&confirm("Excluir este produto?")){try{await deleteProductCloud(d.dataset.delete);products=products.filter(p=>p.id!==d.dataset.delete);saveLocal();render();notify("Produto excluído.")}catch(err){notify("Falha ao excluir: "+err.message)}}});
 $("#searchInput").addEventListener("input",render);$("#platformFilter").addEventListener("change",render);$("#publishProduct").addEventListener("change",preview);
 $("#shareWhatsApp").addEventListener("click",async()=>{const p=products.find(x=>x.id===$("#publishProduct").value);if(!p)return;try{const {error}=await supabaseClient.from("product_clicks").insert({user_id:user.id,product_id:p.id,source:"whatsapp_share"});if(error)throw error;clicks++;saveLocal();render()}catch(err){console.warn("Click tracking:",err.message)}window.open("https://wa.me/?text="+encodeURIComponent(message(p)),"_blank","noopener");notify("Mensagem preparada no WhatsApp.")});
