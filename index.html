@@ -42,7 +42,12 @@
 </main></div>
 <dialog id="productDialog" class="modal"><form id="productForm">
 <div class="modal-heading"><div><p class="eyebrow">NOVO ACHADINHO</p><h2>Cadastrar produto</h2></div><button type="button" class="icon-btn" id="closeDialog" aria-label="Fechar">×</button></div>
-<label>Nome do produto<input name="name" required maxlength="140" placeholder="Ex.: Fone Bluetooth..."></label>
+<div class="import-link-box">
+ <label for="importProductUrl">Importar automaticamente pelo link de afiliado</label>
+ <div class="import-link-row"><input id="importProductUrl" type="url" placeholder="Cole aqui o link do Mercado Livre ou Shopee"><button type="button" id="importProductBtn" class="btn btn-secondary">Buscar informações</button></div>
+ <p id="importProductStatus" class="help-text" role="status">Cole seu link de afiliado. O sistema tentará localizar nome, preço, descrição e imagem.</p>
+ </div>
+ <label>Nome do produto<input name="name" required maxlength="140" placeholder="Ex.: Fone Bluetooth..."></label>
 <div class="form-row"><label>Plataforma<select name="platform"><option>Mercado Livre</option><option>Shopee</option><option>Outro</option></select></label><label>Preço (R$)<input name="price" type="number" min="0" step="0.01" placeholder="0,00"></label></div>
 <label>Descrição<textarea name="description" rows="3" maxlength="500"></textarea></label><label>Link de afiliado<input name="url" type="url" required placeholder="https://..."></label><label>URL da imagem<input name="image" type="url" placeholder="https://..."></label>
 <div class="modal-actions"><button type="button" id="cancelDialog" class="btn btn-ghost">Cancelar</button><button type="submit" class="btn btn-primary">Salvar produto</button></div>
