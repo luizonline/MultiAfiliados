@@ -14,7 +14,8 @@ async function shopeeApi(env,query){const appId=String(env.SHOPEE_APP_ID||"").tr
 function shopeeIds(url){const path=url.pathname;const match=path.match(/-i\.(\d+)\.(\d+)/i)||path.match(/\/product\/(\d+)\/(\d+)/i)||path.match(/\/opaanlp\/(\d+)\/(\d+)/i);if(match)return {shopId:match[1],itemId:match[2]};const shopId=url.searchParams.get("shopid")||url.searchParams.get("shop_id"),itemId=url.searchParams.get("itemid")||url.searchParams.get("item_id");return shopId&&itemId?{shopId,itemId}:null}
 // Consulta também o preço específico da variação indicada no link (vModelId).
 function shopeeRawMoney(value){const n=Number(value);return Number.isFinite(n)&&n>0?Number((n/100000).toFixed(2)):null}
-function selectedModelId(url){return url.searchParams.get("vModelId")||url.searchParams.get("display_model_id")||url.searchParams.get("rModelId")||null}
+function selectedModelIds(url){return ["vModelId","display_model_id","rModelId"].map(k=>url.searchParams.get(k)).filter(Boolean)}
+function selectedModelId(url){return selectedModelIds(url)[0]||null}
 async function shopeeSelectedVariant(url,ids){
  const modelId=selectedModelId(url);if(!modelId)return null;
  const endpoint="https://shopee.com.br/api/v4/item/get?itemid="+encodeURIComponent(ids.itemId)+"&shopid="+encodeURIComponent(ids.shopId);
@@ -23,7 +24,7 @@ async function shopeeSelectedVariant(url,ids){
   if(!response.ok)return null;
   const payload=await response.json();const item=payload?.data?.item||payload?.data||payload?.item||{};
   const models=Array.isArray(item.models)?item.models:[];
-  const model=models.find(x=>String(x.model_id??x.modelid)===String(modelId));
+  const model=models.find(x=>selectedModelIds(url).some(id=>String(x.model_id??x.modelid)===String(id)));
   if(!model)return null;
   const current=shopeeRawMoney(model.price);
   const original=shopeeRawMoney(model.price_before_discount??model.priceBeforeDiscount);
