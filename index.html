@@ -5,7 +5,21 @@
 <meta name="theme-color" content="#10131b"><meta name="description" content="Painel MultiAfiliados para gerenciar produtos e divulgações.">
 <title>MultiAfiliados</title><link rel="stylesheet" href="src/styles.css">
 </head>
-<body>
+<body>\n<section id="authScreen" class="auth-screen">
+ <div class="auth-card">
+  <div class="brand auth-brand"><span class="brand-mark">M</span><div><strong>MultiAfiliados</strong><small>Central de divulgação</small></div></div>
+  <p class="eyebrow">ACESSO AO SISTEMA</p><h1>Entre na sua conta</h1>
+  <p class="auth-copy">Seus produtos ficarão sincronizados com o banco central.</p>
+  <form id="authForm">
+   <label>E-mail<input id="authEmail" type="email" autocomplete="email" required placeholder="voce@email.com"></label>
+   <label>Senha<input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="Mínimo de 6 caracteres"></label>
+   <button id="loginBtn" class="btn btn-primary auth-submit" type="submit">Entrar</button>
+  </form>
+  <button id="signupBtn" class="btn btn-ghost auth-submit" type="button">Criar nova conta</button>
+  <p id="authMessage" class="help-text" role="status">Use seu e-mail e senha para entrar ou criar sua conta.</p>
+ </div>
+</section>
+
 <div class="app-shell">
 <aside class="sidebar">
  <div class="brand"><span class="brand-mark">M</span><div><strong>MultiAfiliados</strong><small>Central de divulgação</small></div></div>
@@ -15,7 +29,7 @@
  <div class="sidebar-footer"><span class="status-dot"></span> Ambiente local <small>v0.1.0</small></div>
 </aside>
 <main class="main-content">
-<header class="topbar"><div><p class="eyebrow">CENTRAL DE OPERAÇÕES</p><h1 id="pageTitle">Visão geral</h1></div><span class="avatar">MA</span></header>
+<header class="topbar"><div><p class="eyebrow">CENTRAL DE OPERAÇÕES</p><h1 id="pageTitle">Visão geral</h1></div><div class="account-area"><span id="accountEmail" class="account-email"></span><button id="logoutBtn" class="btn btn-ghost">Sair</button></div></header>
 <section id="dashboard" class="view">
  <div class="welcome"><div><p class="eyebrow">SEU NEGÓCIO, EM UM SÓ LUGAR</p><h2>Gerencie seus achadinhos.</h2><p>Cadastre ofertas, organize seus links e prepare mensagens para divulgação.</p></div><button class="btn btn-primary" data-go="products">＋ Novo produto</button></div>
  <div class="stats-grid"><article class="stat-card"><span>Produtos cadastrados</span><strong id="statProducts">0</strong><small>No seu catálogo</small></article><article class="stat-card"><span>Mercado Livre</span><strong id="statMl">0</strong><small>Produtos vinculados</small></article><article class="stat-card"><span>Shopee</span><strong id="statShopee">0</strong><small>Produtos vinculados</small></article><article class="stat-card"><span>Cliques registrados</span><strong id="statClicks">0</strong><small>Neste navegador</small></article></div>
@@ -31,5 +45,5 @@
 <div class="form-row"><label>Plataforma<select name="platform"><option>Mercado Livre</option><option>Shopee</option><option>Outro</option></select></label><label>Preço (R$)<input name="price" type="number" min="0" step="0.01" placeholder="0,00"></label></div>
 <label>Descrição<textarea name="description" rows="3" maxlength="500"></textarea></label><label>Link de afiliado<input name="url" type="url" required placeholder="https://..."></label><label>URL da imagem<input name="image" type="url" placeholder="https://..."></label>
 <div class="modal-actions"><button type="button" id="cancelDialog" class="btn btn-ghost">Cancelar</button><button type="submit" class="btn btn-primary">Salvar produto</button></div>
-</form></dialog><div id="toast" class="toast" role="status" aria-live="polite"></div><script src="src/app.js"></script>
+</form></dialog><div id="toast" class="toast" role="status" aria-live="polite"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script src="src/supabase-config.js"></script>\n<script src="src/app.js"></script>
 </body></html>
