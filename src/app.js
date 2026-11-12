@@ -77,6 +77,28 @@ $("#signupBtn").addEventListener("click",async()=>{
 });
 $("#logoutBtn").addEventListener("click",async()=>{const {error}=await supabaseClient.auth.signOut();if(error)notify(error.message);else notify("Você saiu da conta.")});
 $("#newProductBtn").addEventListener("click",openDialog);$("#closeDialog").addEventListener("click",()=>$("#productDialog").close());$("#cancelDialog").addEventListener("click",()=>$("#productDialog").close());
+$("#importProductBtn").addEventListener("click",async()=>{
+ const input=$("#importProductUrl"),status=$("#importProductStatus"),button=$("#importProductBtn"),url=input.value.trim();
+ if(!url){status.textContent="Cole primeiro o link do produto.";input.focus();return}
+ let parsed;try{parsed=new URL(url)}catch{status.textContent="O link informado não é válido.";return}
+ if(!["http:","https:"].includes(parsed.protocol)){status.textContent="Use um link HTTPS válido.";return}
+ button.disabled=true;status.textContent="Consultando as informações do produto...";
+ try{
+  const response=await fetch("/api/import-product",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
+  const result=await response.json();
+  if(!response.ok)throw new Error(result.error||"Não foi possível consultar esse link.");
+  const form=$("#productForm");
+  if(result.name)form.elements.name.value=result.name;
+  if(result.platform)form.elements.platform.value=result.platform;
+  if(result.price!==null&&result.price!==undefined)form.elements.price.value=result.price;
+  if(result.description)form.elements.description.value=result.description;
+  if(result.image)form.elements.image.value=result.image;
+  form.elements.url.value=url;
+  const fields=[result.name,result.price!==null&&result.price!==undefined,result.image].filter(Boolean).length;
+  status.textContent=fields?"Informações encontradas. Confira os campos e complete o que estiver faltando antes de salvar.":"O link foi reconhecido, mas a loja não disponibilizou os dados automaticamente. Você pode preencher os campos manualmente.";
+ }catch(error){console.error("Importação do produto:",error);status.textContent=error.message+" Você ainda pode preencher os dados manualmente."}
+ finally{button.disabled=false}
+});
 $("#productForm").addEventListener("submit",async e=>{e.preventDefault();const f=new FormData(e.currentTarget),p={id:crypto.randomUUID(),code:nextCode(),name:f.get("name").trim(),platform:f.get("platform"),price:Number(f.get("price"))||0,description:f.get("description").trim(),url:f.get("url").trim(),image:f.get("image").trim(),createdAt:new Date().toISOString()};if(!/^https?:\/\//i.test(p.url)){notify("Informe um link válido.");return}try{await saveProductCloud(p);products.push(p);saveLocal();render();e.currentTarget.reset();$("#productDialog").close();notify("Produto salvo na nuvem.");navigate("products")}catch(err){notify("Falha ao salvar no banco: "+err.message)}});
 $("#productGrid").addEventListener("click",async e=>{const b=e.target.closest("[data-publish]");if(b){navigate("publish");$("#publishProduct").value=b.dataset.publish;preview();return}const d=e.target.closest("[data-delete]");if(d&&confirm("Excluir este produto?")){try{await deleteProductCloud(d.dataset.delete);products=products.filter(p=>p.id!==d.dataset.delete);saveLocal();render();notify("Produto excluído.")}catch(err){notify("Falha ao excluir: "+err.message)}}});
 $("#searchInput").addEventListener("input",render);$("#platformFilter").addEventListener("change",render);$("#publishProduct").addEventListener("change",preview);
