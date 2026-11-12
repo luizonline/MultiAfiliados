@@ -82,7 +82,7 @@ $("#importProductBtn").addEventListener("click",async()=>{
  if(!url){status.textContent="Cole primeiro o link do produto.";input.focus();return}
  let parsed;try{parsed=new URL(url)}catch{status.textContent="O link informado não é válido.";return}
  if(!["http:","https:"].includes(parsed.protocol)){status.textContent="Use um link HTTPS válido.";return}
- button.disabled=true;status.textContent="Consultando as informações do produto...";
+ const formBeforeRequest=$("#productForm");const detectedPlatform=/shopee\\.com\\.br|shope\\.ee/i.test(parsed.hostname)?"Shopee":"Mercado Livre";formBeforeRequest.elements.platform.value=detectedPlatform;button.disabled=true;status.textContent="Consultando as informações do produto...";
  try{
   const response=await fetch("/api/import-product",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({url})});
   const responseText=await response.text();
@@ -97,9 +97,9 @@ $("#importProductBtn").addEventListener("click",async()=>{
   if(result.price!==null&&result.price!==undefined)form.elements.price.value=formatPriceInput(result.price);if(result.originalPrice!==null&&result.originalPrice!==undefined)form.elements.originalPrice.value=formatPriceInput(result.originalPrice);
   if(result.description)form.elements.description.value=result.description;
   if(result.image)form.elements.image.value=result.image;
-  let affiliateUrl=url;
-  if(result.platform==="Shopee"){
-   status.textContent="Produto localizado. Gerando seu link de afiliado Shopee...";
+  let affiliateUrl=result.affiliateUrl||url;
+  if(result.platform==="Shopee"&&!result.affiliateUrl){
+   status.textContent="Dados encontrados. Gerando seu link de afiliado Shopee...";
    try{
     const linkResponse=await fetch("/api/shopee-link",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({url:result.canonicalUrl||url})});
     const linkData=await linkResponse.json().catch(()=>({}));
