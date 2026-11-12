@@ -6,7 +6,7 @@ create table if not exists public.products (
  code bigint not null,
  name text not null,
  platform text not null check (platform in ('Mercado Livre','Shopee','Outro')),
- price numeric(12,2), description text, affiliate_url text not null, image_url text,
+ price numeric(12,2), original_price numeric(12,2), description text, affiliate_url text not null, image_url text,
  created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
  unique(user_id,code)
 );
