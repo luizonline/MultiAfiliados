@@ -17,20 +17,30 @@ function shopeeRawMoney(value){const n=Number(value);return Number.isFinite(n)&&
 function selectedModelIds(url){return ["vModelId","display_model_id","rModelId"].map(k=>url.searchParams.get(k)).filter(Boolean)}
 function selectedModelId(url){return selectedModelIds(url)[0]||null}
 async function shopeeSelectedVariant(url,ids){
- const modelId=selectedModelId(url);if(!modelId)return null;
+ const requestedIds=selectedModelIds(url);
  const endpoint="https://shopee.com.br/api/v4/item/get?itemid="+encodeURIComponent(ids.itemId)+"&shopid="+encodeURIComponent(ids.shopId);
  try{
   const response=await fetch(endpoint,{headers:{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36","Accept":"application/json","Referer":"https://shopee.com.br/","x-api-source":"pc","x-shopee-language":"pt-BR"}});
   if(!response.ok)return null;
   const payload=await response.json();const item=payload?.data?.item||payload?.data||payload?.item||{};
   const models=Array.isArray(item.models)?item.models:[];
-  const model=models.find(x=>selectedModelIds(url).some(id=>String(x.model_id??x.modelid)===String(id)));
-  if(!model)return null;
-  const current=shopeeRawMoney(model.price);
-  const original=shopeeRawMoney(model.price_before_discount??model.priceBeforeDiscount);
-  if(current===null)return null;
-  return {price:current,originalPrice:original!==null&&original>current?original:null,modelName:model.name||""};
- }catch(error){console.error("Shopee selected variant:",error?.message||error);return null}
+  let model=null;
+  if(requestedIds.length) model=models.find(x=>requestedIds.some(id=>String(x.model_id??x.modelid)===String(id)))||null;
+  else if(models.length===1) model=models[0];
+  if(model){
+   const current=shopeeRawMoney(model.price);
+   const original=shopeeRawMoney(model.price_before_discount??model.priceBeforeDiscount);
+   if(current!==null)return {price:current,originalPrice:original!==null&&original>current?original:null,modelName:model.name||"",source:"item-model"};
+  }
+  if(!requestedIds.length){
+   const itemPrice=shopeeRawMoney(item.price);
+   const itemOriginal=shopeeRawMoney(item.price_before_discount??item.priceBeforeDiscount);
+   const min=shopeeRawMoney(item.price_min??item.priceMin),max=shopeeRawMoney(item.price_max??item.priceMax);
+   if(itemPrice!==null)return {price:itemPrice,originalPrice:itemOriginal!==null&&itemOriginal>itemPrice?itemOriginal:null,modelName:"",source:"item"};
+   if(min!==null&&max!==null&&Math.abs(min-max)<0.005)return {price:min,originalPrice:null,modelName:"",source:"item-range"};
+  }
+  return null;
+ }catch(error){console.error("Shopee item detail:",error?.message||error);return null}
 }
 async function shopeeProduct(url,env,selectionUrl=url){const ids=shopeeIds(url);if(!ids)return null;const query="{ productOfferV2(itemId: "+ids.itemId+", page: 1, limit: 10) { nodes { itemId productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate sales ratingStar shopId shopName } pageInfo { page limit hasNextPage } } }";const data=await shopeeApi(env,query);const nodes=data.productOfferV2?.nodes||[];const node=nodes.find(x=>String(x.itemId)===ids.itemId)||nodes[0]||null;if(!node)return null;const min=moneyValue(node.priceMin),max=moneyValue(node.priceMax),discount=Number(node.priceDiscountRate)||0;const currentPrice=min??max;const originalPrice=currentPrice!==null&&discount>0&&discount<100?Number((currentPrice/(1-discount/100)).toFixed(2)):null;const variant=await shopeeSelectedVariant(selectionUrl,ids);const hasSelection=Boolean(selectedModelId(selectionUrl));return {name:node.productName||"",description:variant?.modelName|| (hasSelection?"Variação selecionada no link; preço específico ainda não confirmado.":(min!==null&&max!==null&&max>min?"Preço varia conforme a opção (de R$ "+min.toFixed(2)+" a R$ "+max.toFixed(2)+").":"")),image:node.imageUrl||"",price:variant?.price??(hasSelection?null:currentPrice),originalPrice:variant?.originalPrice??(hasSelection?null:originalPrice),priceMin:min,priceMax:max,affiliateUrl:node.offerLink||"",canonicalUrl:node.productLink||url.toString(),platform:"Shopee"}}
 export async function onRequestPost({request,env}){try{const body=await request.json();let target;try{target=new URL(body.url)}catch{return Response.json({error:"URL inválida."},{status:400})}if(!["http:","https:"].includes(target.protocol)||!allowed(target.hostname.toLowerCase()))return Response.json({error:"Por segurança, só aceitamos links oficiais do Mercado Livre e da Shopee."},{status:400});const platform=/shopee|shope\.ee|shp\.ee/.test(target.hostname);
