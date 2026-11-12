@@ -39,7 +39,12 @@ async function saveProductCloud(p){
 }
 async function deleteProductCloud(id){if(!supabase||!user)return;const {error}=await supabase.from("products").delete().eq("id",id);if(error)throw error}
 async function signIn(email,password){const {error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error}
-async function signUp(email,password){const {data,error}=await supabase.auth.signUp({email,password});if(error)throw error;if(!data.session)authMessage("Conta criada. Confira seu e-mail para confirmar o cadastro e depois entre no sistema.");}
+async function signUp(email,password){
+ if(!supabase)throw new Error("A conexão com o Supabase não foi iniciada. Atualize a página.");
+ const {data,error}=await supabase.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}});
+ if(error)throw error;
+ return data;
+}
 function setUser(next){
  user=next;
  if(!user){showAuth(true);$("#accountEmail").textContent="";return}
@@ -53,7 +58,23 @@ async function init(){
  supabase.auth.onAuthStateChange((_event,session)=>setUser(session?.user||null));
 }
 $("#authForm").addEventListener("submit",async e=>{e.preventDefault();const email=$("#authEmail").value.trim(),password=$("#authPassword").value;$("#loginBtn").disabled=true;try{await signIn(email,password);authMessage("Login realizado.")}catch(err){authMessage(err.message||"Não foi possível entrar.")}finally{$("#loginBtn").disabled=false}});
-$("#signupBtn").addEventListener("click",async()=>{const email=$("#authEmail").value.trim(),password=$("#authPassword").value;if(!email||password.length<6){authMessage("Informe um e-mail válido e uma senha com pelo menos 6 caracteres.");return}$("#signupBtn").disabled=true;try{await signUp(email,password)}catch(err){authMessage(err.message||"Não foi possível criar a conta.")}finally{$("#signupBtn").disabled=false}});
+$("#signupBtn").addEventListener("click",async()=>{
+ const email=$("#authEmail").value.trim().toLowerCase(),password=$("#authPassword").value;
+ if(!email||!$("#authEmail").checkValidity()){authMessage("Digite um endereço de e-mail válido.");$("#authEmail").focus();return}
+ if(password.length<6){authMessage("A senha precisa ter pelo menos 6 caracteres.");$("#authPassword").focus();return}
+ if(!supabase){authMessage("O sistema ainda está conectando ao banco. Atualize a página e tente novamente.");return}
+ $("#signupBtn").disabled=true;$("#loginBtn").disabled=true;
+ authMessage("Enviando solicitação de cadastro...");
+ try{
+  const data=await signUp(email,password);
+  if(data.session){setUser(data.session.user);authMessage("Conta criada e acesso liberado.")}
+  else{authMessage("Solicitação enviada. Verifique a caixa de entrada e o spam do e-mail para confirmar a conta. Depois volte e clique em Entrar.")}
+ }catch(err){
+  console.error("Erro ao criar conta:",err);
+  const msg=err?.message||"Falha desconhecida ao criar a conta.";
+  authMessage("Não foi possível criar a conta: "+msg);
+ }finally{$("#signupBtn").disabled=false;$("#loginBtn").disabled=false}
+});
 $("#logoutBtn").addEventListener("click",async()=>{const {error}=await supabase.auth.signOut();if(error)notify(error.message);else notify("Você saiu da conta.")});
 $("#newProductBtn").addEventListener("click",openDialog);$("#closeDialog").addEventListener("click",()=>$("#productDialog").close());$("#cancelDialog").addEventListener("click",()=>$("#productDialog").close());
 $("#productForm").addEventListener("submit",async e=>{e.preventDefault();const f=new FormData(e.currentTarget),p={id:crypto.randomUUID(),code:nextCode(),name:f.get("name").trim(),platform:f.get("platform"),price:Number(f.get("price"))||0,description:f.get("description").trim(),url:f.get("url").trim(),image:f.get("image").trim(),createdAt:new Date().toISOString()};if(!/^https?:\/\//i.test(p.url)){notify("Informe um link válido.");return}try{await saveProductCloud(p);products.push(p);saveLocal();render();e.currentTarget.reset();$("#productDialog").close();notify("Produto salvo na nuvem.");navigate("products")}catch(err){notify("Falha ao salvar no banco: "+err.message)}});
