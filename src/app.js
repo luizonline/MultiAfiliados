@@ -50,7 +50,7 @@ function setUser(next){
  if(!user){showAuth(true);$("#accountEmail").textContent="";return}
  $("#accountEmail").textContent=user.email||"Conta conectada";showAuth(false);syncProducts();
 }
-async function init(){
+async async function init(){
  const cfg=window.MULTIAFILIADOS_SUPABASE;
  if(!window.supabase||!cfg?.url||!cfg?.publishableKey){showAuth(true);authMessage("Configuração do Supabase não carregou. Atualize a página.");return}
  supabase=window.supabase.createClient(cfg.url,cfg.publishableKey);
