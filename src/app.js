@@ -84,9 +84,13 @@ $("#importProductBtn").addEventListener("click",async()=>{
  if(!["http:","https:"].includes(parsed.protocol)){status.textContent="Use um link HTTPS válido.";return}
  button.disabled=true;status.textContent="Consultando as informações do produto...";
  try{
-  const response=await fetch("/api/import-product",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
-  const result=await response.json();
-  if(!response.ok)throw new Error(result.error||"Não foi possível consultar esse link.");
+  const response=await fetch("/api/import-product",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({url})});
+  const responseText=await response.text();
+  let result={};
+  try{result=responseText?JSON.parse(responseText):{}}
+  catch{throw new Error("O servidor retornou uma resposta inválida (HTTP "+response.status+"). Verifique se a função /api/import-product está publicada no Cloudflare Pages.")}
+  if(!response.ok)throw new Error(result.error||"Falha na consulta (HTTP "+response.status+").");
+  if(!result||typeof result!=="object")throw new Error("A resposta do servidor veio em formato inesperado.");
   const form=$("#productForm");
   if(result.name)form.elements.name.value=result.name;
   if(result.platform)form.elements.platform.value=result.platform;
