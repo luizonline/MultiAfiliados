@@ -6,7 +6,7 @@ function saveLocal(){localStorage.setItem(KEY,JSON.stringify(products));localSto
 function esc(v=""){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function notify(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),3000)}
 function authMessage(m){$("#authMessage").textContent=m}
-function showAuth(show){$("#authScreen").classList.toggle("hidden",!show);$(".app-shell").classList.toggle("hidden",show)}
+function showAuth(show){const auth=$("#authScreen"),app=$(".app-shell");auth.classList.toggle("hidden",!show);app.classList.toggle("hidden",show);auth.style.display=show?"grid":"none";app.style.display=show?"none":"grid"}
 function navigate(view){document.querySelectorAll(".view").forEach(x=>x.classList.toggle("hidden",x.id!==view));document.querySelectorAll(".nav-item").forEach(x=>x.classList.toggle("active",x.hash==="#"+view));$("#pageTitle").textContent=({dashboard:"Visão geral",products:"Produtos",publish:"Publicação",settings:"Configurações"})[view]||"MultiAfiliados";history.replaceState(null,"","#"+view)}
 function nextCode(){return products.reduce((m,p)=>Math.max(m,Number(p.code)||1000),1000)+1}
 function message(p){return `🔥 ACHADINHO #${p.code}\n\n🛍️ ${p.name}\n${p.price?"💰 "+money(p.price)+"\n":""}${p.description?p.description+"\n\n":"\n"}👉 Confira aqui: ${p.url}`}
