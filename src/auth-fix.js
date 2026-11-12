@@ -1,6 +1,46 @@
 // Fallback isolado para o cadastro: mantém o botão funcional mesmo se outro módulo falhar.
 (function () {
   const ready = () => {
+    const loginButton = document.getElementById("loginBtn");
+    const loginEmail = document.getElementById("authEmail");
+    const loginPassword = document.getElementById("authPassword");
+    const loginMessage = document.getElementById("authMessage");
+    if (loginButton && loginButton.dataset.loginFallbackBound !== "1") {
+      loginButton.dataset.loginFallbackBound = "1";
+      loginButton.addEventListener("click", async function (event) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const say = (value) => { if (loginMessage) loginMessage.textContent = value; };
+        const email = (loginEmail?.value || "").trim().toLowerCase();
+        const password = loginPassword?.value || "";
+        if (!loginEmail?.checkValidity()) { say("Digite um e-mail válido."); loginEmail?.focus(); return; }
+        if (password.length < 6) { say("A senha precisa ter pelo menos 6 caracteres."); loginPassword?.focus(); return; }
+        const cfg = window.MULTIAFILIADOS_SUPABASE;
+        const sdk = window.supabase;
+        if (!cfg?.url || !cfg?.publishableKey || !sdk?.createClient) {
+          say("Conexão com o Supabase indisponível. Atualize a página e tente novamente.");
+          return;
+        }
+        loginButton.disabled = true;
+        say("Verificando seus dados de acesso...");
+        try {
+          const client = sdk.createClient(cfg.url, cfg.publishableKey);
+          const { data, error } = await client.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          if (!data?.session) throw new Error("O Supabase não retornou uma sessão de acesso.");
+          say("Acesso confirmado. Abrindo o MultiAfiliados...");
+          window.location.reload();
+        } catch (error) {
+          console.error("Falha no login MultiAfiliados:", error);
+          const messageText = error?.message || "Não foi possível concluir o login.";
+          say(messageText === "Invalid login credentials"
+            ? "E-mail ou senha incorretos. Se a conta foi criada antes de desativar a confirmação, será necessário confirmá-la no Supabase."
+            : "Falha no login: " + messageText);
+        } finally {
+          loginButton.disabled = false;
+        }
+      }, true);
+    }
     const button = document.getElementById("signupBtn");
     const emailInput = document.getElementById("authEmail");
     const passwordInput = document.getElementById("authPassword");
