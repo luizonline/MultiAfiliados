@@ -47,6 +47,8 @@ async function signUp(email,password){
 }
 function setUser(next){
  user=next;
+ const recovering=new URLSearchParams(window.location.search).get("reset-password")==="1"||window.location.hash.includes("type=recovery");
+ if(recovering){showAuth(true);$("#accountEmail").textContent="";return}
  if(!user){showAuth(true);$("#accountEmail").textContent="";return}
  $("#accountEmail").textContent=user.email||"Conta conectada";showAuth(false);syncProducts();
 }
@@ -54,7 +56,8 @@ async function init(){
  const cfg=window.MULTIAFILIADOS_SUPABASE;
  if(!window.supabase||!cfg?.url||!cfg?.publishableKey){showAuth(true);authMessage("Configuração do Supabase não carregou. Atualize a página.");return}
  supabaseClient=window.supabase.createClient(cfg.url,cfg.publishableKey);
- const {data:{session}}=await supabaseClient.auth.getSession();setUser(session?.user||null);
+ try{const {data:{session}}=await supabaseClient.auth.getSession();setUser(session?.user||null);}
+ catch(error){console.error("Falha ao consultar sessão Supabase:",error);showAuth(true);authMessage("Não foi possível conectar ao serviço de login (Failed to fetch). Verifique a conexão e o projeto Supabase.");}
  supabaseClient.auth.onAuthStateChange((_event,session)=>setUser(session?.user||null));
 }
 $("#authForm").addEventListener("submit",async e=>{e.preventDefault();const email=$("#authEmail").value.trim(),password=$("#authPassword").value;$("#loginBtn").disabled=true;try{await signIn(email,password);authMessage("Login realizado.")}catch(err){authMessage(err.message||"Não foi possível entrar.")}finally{$("#loginBtn").disabled=false}});
