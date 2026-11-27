@@ -23,3 +23,8 @@ create policy "Users read own clicks" on public.product_clicks for select using(
 create policy "Users insert own clicks" on public.product_clicks for insert with check(auth.uid()=user_id);
 create index if not exists products_user_created_idx on public.products(user_id,created_at desc);
 create index if not exists product_clicks_user_clicked_idx on public.product_clicks(user_id,clicked_at desc);
+
+
+-- Campos opcionais usados nos modelos de divulgação.
+alter table public.products add column if not exists coupon text not null default '';
+alter table public.products add column if not exists installments text not null default '';
