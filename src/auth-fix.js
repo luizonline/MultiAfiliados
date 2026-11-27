@@ -80,22 +80,7 @@
         say("Não foi possível atualizar a senha: " + (error?.message || "o link pode ter expirado. Solicite outro."));
       } finally { button.disabled = false; }
     });
-    $("signupBtn")?.addEventListener("click", async (event) => {
-      event.preventDefault(); event.stopImmediatePropagation();
-      const email = ($("authEmail")?.value || "").trim().toLowerCase();
-      const password = $("authPassword")?.value || "";
-      if (!$("authEmail")?.checkValidity()) { say("Digite um endereço de e-mail válido."); $("authEmail")?.focus(); return; }
-      if (password.length < 6) { say("A senha precisa ter pelo menos 6 caracteres."); $("authPassword")?.focus(); return; }
-      const button = $("signupBtn"); button.disabled = true; say("Conectando ao banco e criando sua conta...");
-      try {
-        const { data, error } = await client.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
-        if (error) throw error;
-        say(data.session ? "Conta criada com sucesso. Você já pode entrar." : "Solicitação enviada. Confira seu e-mail e a pasta de spam para confirmar a conta.");
-      } catch (error) {
-        console.error("Falha no cadastro:", error);
-        say("Erro no cadastro: " + (error?.message || "não foi possível concluir a solicitação."));
-      } finally { button.disabled = false; }
-    }, true);
+
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ready);
   else ready();
