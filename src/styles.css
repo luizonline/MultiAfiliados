@@ -29,3 +29,11 @@
  .nav-item.active,.nav-item:hover{background:rgba(232,182,76,.12);color:#f7d98b}
  .main-content{padding:20px 15px 28px}
 }
+
+/* Correção do fundo e do enquadramento da tela de autenticação */
+html,body{min-height:100%;background:var(--bg)}
+.auth-screen{position:fixed;inset:0;min-height:100dvh;overflow-y:auto;place-items:center;background-color:var(--bg);background-image:radial-gradient(ellipse at 50% 0%,rgba(232,182,76,.12) 0%,rgba(10,10,11,0) 58%);}
+.auth-card{margin:auto;max-height:calc(100dvh - 32px);overflow-y:auto}
+#newPasswordPanel{display:grid;gap:10px;margin-top:12px}
+#newPasswordPanel.hidden{display:none!important}
+#newPasswordPanel .auth-label{display:block;color:#bbc3d2;font-size:12px;font-weight:600}
