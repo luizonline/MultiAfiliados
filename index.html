@@ -16,6 +16,12 @@
    <label>Senha<input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="Mínimo de 6 caracteres"></label>
    <button id="loginBtn" class="btn btn-primary auth-submit" type="button">Entrar</button>
   </form>
+  <button id="forgotPasswordBtn" class="btn btn-ghost auth-submit" type="button">Esqueci minha senha</button>
+  <section id="newPasswordPanel" class="hidden">
+   <p class="help-text">Defina uma nova senha para sua conta.</p>
+   <label class="auth-label" for="newPassword">Nova senha</label><input id="newPassword" type="password" minlength="6" autocomplete="new-password" placeholder="Mínimo de 6 caracteres">
+   <button id="saveNewPasswordBtn" class="btn btn-primary auth-submit" type="button">Salvar nova senha</button>
+  </section>
   <button id="signupBtn" class="btn btn-ghost auth-submit" type="button">Criar nova conta</button>
   <p id="authMessage" class="help-text" role="status">Use seu e-mail e senha para entrar ou criar sua conta.</p>
  </div>
